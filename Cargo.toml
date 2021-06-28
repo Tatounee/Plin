@@ -1,0 +1,25 @@
+[package]
+name = "plin"
+version = "0.1.0"
+authors = ["Tatounee <oettam32@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[profile.release]
+lto = true
+
+[dependencies]
+reqwest = { version="0.11.3", features=["json"] }
+dotenv = "0.15.0"
+serde = { version="1.0", features=["derive"] }
+tokio = { version="1.1", features=["macros", "rt-multi-thread", "sync"] }
+serenity = { version="0.10.8", default-features=false, features=[
+    "client",
+    "gateway",
+    "rustls_backend",
+    "model",
+    "cache",
+] }
+humantime = "2.1.0"
+chrono = "0.4.19"
