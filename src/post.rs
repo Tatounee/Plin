@@ -2,7 +2,7 @@ use chrono::Local;
 use serenity::client::Context;
 use serenity::model::id::ChannelId;
 
-use crate::clashroyale::RiverRace;
+use crate::river_race::RiverRace;
 use crate::{Day, IsNewMessage, PeriodIndex, Post};
 
 // TODO: update the date for each post
@@ -16,11 +16,11 @@ macro_rules! write_post {
                 .fields($clans_fielded)
                 .footer(|f| {
                     f.text(match $river_race.period_type {
-                        crate::clashroyale::Period::War => format!(
+                        crate::river_race::Period::War => format!(
                             "Jour de combat n°{}",
                             $river_race.period_index - $river_race.section_index * 7 - 2
                         ),
-                        crate::clashroyale::Period::Training => format!(
+                        crate::river_race::Period::Training => format!(
                             "Jour d'entrainement n°{}",
                             $river_race.period_index - $river_race.section_index * 7 + 1
                         ),

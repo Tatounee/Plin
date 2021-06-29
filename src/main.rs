@@ -1,8 +1,8 @@
-mod clashroyale;
 mod cmd;
 mod data;
 mod handler;
 mod post;
+mod river_race;
 
 use dotenv::dotenv;
 use reqwest::{
