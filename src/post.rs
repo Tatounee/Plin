@@ -5,6 +5,8 @@ use serenity::model::id::ChannelId;
 use crate::river_race::RiverRace;
 use crate::{Day, IsNewMessage, PeriodIndex, Post};
 
+pub type Field = (String, String, bool);
+
 // TODO: update the date for each post
 #[macro_export]
 macro_rules! write_post {
@@ -32,18 +34,27 @@ macro_rules! write_post {
     };
 }
 
+#[macro_export]
+macro_rules! send {
+    ($msg:expr) => {
+        if let Err(why) = $msg {
+            println!("Error sending message: {:?}", why);
+        }
+    };
+}
+
 pub async fn send_post(
     channel: ChannelId,
     ctx: &Context,
     river_race: &RiverRace,
-    clans_fielded: Vec<(&String, String, bool)>,
+    clans_fielded: Vec<Field>,
     date: String,
     period_index: i32,
 ) {
     let mut data = ctx.data.write().await;
     data.insert::<IsNewMessage>(false);
     match channel
-        .send_message(&ctx.http, |m| {
+        .send_message(&ctx, |m| {
             write_post!(m, river_race, clans_fielded, date)
         })
         .await
@@ -60,13 +71,13 @@ pub async fn send_post(
 pub async fn edit_post(
     ctx: &Context,
     river_race: &RiverRace,
-    clans_fielded: Vec<(&String, String, bool)>,
+    clans_fielded: Vec<Field>,
     date: String,
 ) {
     let mut data = ctx.data.write().await;
     let post = data.get_mut::<Post>().unwrap();
     match post
-        .edit(&ctx.http, |m| {
+        .edit(ctx, |m| {
             write_post!(m, river_race, clans_fielded, date)
         })
         .await
@@ -80,5 +91,6 @@ pub async fn edit_post(
 
 #[inline]
 pub fn date_formated() -> String {
+    //! FIXE THIS
     format!("{:?}", Local::now())[0..19].to_owned()
 }

@@ -11,9 +11,9 @@ use std::time::Duration;
 
 use crate::cmd::*;
 use crate::post::{edit_post, send_post};
-use crate::{clashroyale::*, post::date_formated};
+use crate::{post::date_formated, river_race::*};
 use crate::{
-    ClanTag, Day, IsNewMessage, PeriodIndex, PostChannelId, Run, Update, UpdateDuration,
+    ClanTag, Day, IsNewMessage, PeriodIndex, PostChannelId, Run, UpdateDuration, UpdatePost,
     TIME_FRAGMENTATION,
 };
 

@@ -1,3 +1,4 @@
+mod clan;
 mod cmd;
 mod data;
 mod handler;
@@ -7,7 +8,7 @@ mod river_race;
 use dotenv::dotenv;
 use reqwest::{
     header::{HeaderMap, ACCEPT, AUTHORIZATION},
-    Client,
+    Client as ReqwClient,
 };
 use serenity::{
     model::{channel::Message, id::ChannelId},
@@ -19,15 +20,15 @@ use std::env;
 use handler::Handler;
 
 ctx_data!(
-    PostChannelId => ChannelId,
     UpdateDuration => u64,
-    Update => bool,
-    ClanTag => String,
-    Run => bool,
-    Post => Message,
-    PeriodIndex => i32,
-    Day => String,
     IsNewMessage => bool,
+    UpdatePost => bool,
+    Run => bool,
+    Day => String,
+    PostChannelId => ChannelId,
+    Post => Message,
+    ClanTag => String,
+    PeriodIndex => i32,
 );
 
 const TIME_FRAGMENTATION: u64 = 5;
@@ -36,7 +37,7 @@ const TIME_FRAGMENTATION: u64 = 5;
 async fn main() {
     dotenv().ok();
     let plin_token =
-        env::var("PLIN_DISCORD_TOKEN").expect("Expected a Discord token in the environment");
+        env::var("PLIN_DEV_DISCORD_TOKEN").expect("Expected a Discord token in the environment");
     let cr_token =
         env::var("PLIN_CR_TOKEN").expect("Expected a Clash Royale token in the environment");
 
@@ -46,8 +47,8 @@ async fn main() {
         AUTHORIZATION,
         format!("Bearer {}", cr_token).parse().unwrap(),
     );
+    let client = ReqwClient::new();
 
-    let client = Client::new();
     let handler = Handler::new(client, header);
 
     let mut bot = DiscordClient::builder(&plin_token)
