@@ -1,43 +1,15 @@
 use reqwest::{header::HeaderMap, Client};
-use serenity::{
-    async_trait,
-    model::{channel::Message, gateway::Ready, id::ChannelId},
-    prelude::*,
-    utils::MessageBuilder,
-};
+use serenity::{async_trait, model::gateway::Ready, prelude::*};
 use tokio::time::sleep;
 
 use std::time::Duration;
 
-use crate::cmd::*;
 use crate::post::{edit_post, send_post};
 use crate::{post::date_formated, river_race::*};
 use crate::{
     ClanTag, Day, IsNewMessage, PeriodIndex, PostChannelId, Run, UpdateDuration, UpdatePost,
     TIME_FRAGMENTATION,
 };
-
-//* Used for testing
-// static mut COUNTER: i32 = 0;
-// fn river_race_dev() -> RiverRace {
-//     let index = unsafe {
-//         if COUNTER < 3 {
-//             0
-//         } else {
-//             1
-//         }
-//     };
-//     unsafe {
-//         COUNTER += 1;
-//         println!("COUNTER = {}", COUNTER);
-//     }
-//     RiverRace {
-//         clans: vec![],
-//         section_index: 0,
-//         period_index: index,
-//         period_type: Period::Training,
-//     }
-// }
 
 pub struct Handler {
     client: Client,
@@ -67,197 +39,13 @@ impl Handler {
 
 #[async_trait]
 impl EventHandler for Handler {
-    async fn message(&self, ctx: Context, mut msg: Message) {
-        //: "!plin " => 0..6
-        if msg.content.len() >= 6 && msg.content.drain(0..6).collect::<String>() == *"!plin " {
-            let mut command = msg.content.trim().chars();
-            let cmd = command
-                .by_ref()
-                .take_while(|c| *c != ' ')
-                .collect::<String>();
-            println!("cmd = `{}`", cmd);
-            let roles = ctx
-                .http
-                .get_guild_roles(*msg.guild_id.unwrap().as_u64())
-                .await
-                .unwrap_or_else(|_| Vec::new());
-            let admin_role = roles
-                .iter()
-                .find(|role| role.name.to_lowercase() == "admin");
-            match cmd.as_ref() {
-                "channel" => {
-                    if (admin_role.is_some()
-                        && msg
-                            .author
-                            .has_role(&ctx.http, admin_role.unwrap().guild_id, admin_role.unwrap())
-                            .await
-                            .unwrap_or(false))
-                        || admin_role.is_none()
-                    {
-                        cmd_channel(command, &ctx, &msg).await;
-                    } else if let Err(why) = msg
-                            .channel_id
-                            .say(&ctx.http, "Vous n'avez pas les permitions pour effectuer cette commande. Role requit : @Admin")
-                            .await
-                        {
-                            println!("Error sending message: {:?}", why);
-                        }
-                }
-                "interval" => {
-                    if (admin_role.is_some()
-                        && msg
-                            .author
-                            .has_role(&ctx.http, admin_role.unwrap().guild_id, admin_role.unwrap())
-                            .await
-                            .unwrap_or(false))
-                        || admin_role.is_none()
-                    {
-                        cmd_interval(command, &ctx, &msg).await;
-                    } else if let Err(why) = msg
-                            .channel_id
-                            .say(&ctx.http, "Vous n'avez pas les permitions pour effectuer cette commande. Role requit : @Admin")
-                            .await
-                        {
-                            println!("Error sending message: {:?}", why);
-                        }
-                }
-                "tag" => {
-                    if (admin_role.is_some()
-                        && msg
-                            .author
-                            .has_role(&ctx.http, admin_role.unwrap().guild_id, admin_role.unwrap())
-                            .await
-                            .unwrap_or(false))
-                        || admin_role.is_none()
-                    {
-                        cmd_tag(command, &ctx, &msg).await;
-                    } else if let Err(why) = msg
-                            .channel_id
-                            .say(&ctx.http, "Vous n'avez pas les permitions pour effectuer cette commande. Role requit : @Admin")
-                            .await
-                        {
-                            println!("Error sending message: {:?}", why);
-                        }
-                }
-                "update" => {
-                    if (admin_role.is_some()
-                        && msg
-                            .author
-                            .has_role(&ctx.http, admin_role.unwrap().guild_id, admin_role.unwrap())
-                            .await
-                            .unwrap_or(false))
-                        || admin_role.is_none()
-                    {
-                        update_post(&ctx).await;
-                    } else if let Err(why) = msg
-                            .channel_id
-                            .say(&ctx.http, "Vous n'avez pas les permitions pour effectuer cette commande. Role requit : @Admin")
-                            .await
-                        {
-                            println!("Error sending message: {:?}", why);
-                        }
-                }
-                "newpost" => {
-                    if (admin_role.is_some()
-                        && msg
-                            .author
-                            .has_role(&ctx.http, admin_role.unwrap().guild_id, admin_role.unwrap())
-                            .await
-                            .unwrap_or(false))
-                        || admin_role.is_none()
-                    {
-                        new_post(&ctx).await;
-                    } else if let Err(why) = msg
-                            .channel_id
-                            .say(&ctx.http, "Vous n'avez pas les permitions pour effectuer cette commande. Role requit : @Admin")
-                            .await
-                        {
-                            println!("Error sending message: {:?}", why);
-                        }
-                }
-                "start" => {
-                    if (admin_role.is_some()
-                        && msg
-                            .author
-                            .has_role(&ctx.http, admin_role.unwrap().guild_id, admin_role.unwrap())
-                            .await
-                            .unwrap_or(false))
-                        || admin_role.is_none()
-                    {
-                        set_run(&ctx, &msg, true, "Mise en route").await;
-                    } else if let Err(why) = msg
-                            .channel_id
-                            .say(&ctx.http, "Vous n'avez pas les permitions pour effectuer cette commande. Role requit : @Admin")
-                            .await
-                        {
-                            println!("Error sending message: {:?}", why);
-                        }
-                }
-                "stop" => {
-                    if (admin_role.is_some()
-                        && msg
-                            .author
-                            .has_role(&ctx.http, admin_role.unwrap().guild_id, admin_role.unwrap())
-                            .await
-                            .unwrap_or(false))
-                        || admin_role.is_none()
-                    {
-                        set_run(&ctx, &msg, false, "Arrêt").await;
-                    } else if let Err(why) = msg
-                            .channel_id
-                            .say(&ctx.http, "Vous n'avez pas les permitions pour effectuer cette commande. Role requit : @Admin")
-                            .await
-                        {
-                            println!("Error sending message: {:?}", why);
-                        }
-                }
-                "dev" => {
-                    if (admin_role.is_some()
-                        && msg
-                            .author
-                            .has_role(&ctx.http, admin_role.unwrap().guild_id, admin_role.unwrap())
-                            .await
-                            .unwrap_or(false))
-                        || admin_role.is_none()
-                    {
-                        let mut data = ctx.data.write().await;
-                        data.insert::<PostChannelId>(ChannelId(827206396361441331));
-                        data.insert::<ClanTag>("YLP9PVC9".to_owned());
-                        data.insert::<UpdateDuration>(TIME_FRAGMENTATION);
-                        msg.channel_id.say(&ctx.http, "Dev ok !").await.ok();
-                    } else if let Err(why) = msg
-                            .channel_id
-                            .say(&ctx.http, "Vous n'avez pas les permitions pour effectuer cette commande. Role requit : @Admin")
-                            .await
-                        {
-                            println!("Error sending message: {:?}", why);
-                        }
-                }
-                cmd => {
-                    if let Err(why) = msg
-                        .channel_id
-                        .say(
-                            &ctx.http,
-                            MessageBuilder::new()
-                                .push("Commande inconnue : ")
-                                .push_mono(cmd),
-                        )
-                        .await
-                    {
-                        println!("Error sending message: {:?}", why);
-                    }
-                }
-            }
-        }
-    }
-
     async fn ready(&self, ctx: Context, ready: Ready) {
         println!("{} is connected!", ready.user.name);
         let mut data = ctx.data.write().await;
         data.insert::<UpdateDuration>(60 * 10);
         data.insert::<Run>(false);
-        data.insert::<Update>(false);
-        data.insert::<IsNewMessage>(true);
+        data.insert::<UpdatePost>(false);
+        data.insert::<IsNewMessage>(false);
         drop(data);
 
         'app: loop {
@@ -321,11 +109,11 @@ impl EventHandler for Handler {
                             }
                             let data = ctx.data.read().await;
                             if *data.get::<UpdateDuration>().unwrap() != last_duration
-                                || *data.get::<Update>().unwrap()
+                                || *data.get::<UpdatePost>().unwrap()
                             {
                                 drop(data);
                                 let mut data = ctx.data.write().await;
-                                data.insert::<Update>(false);
+                                data.insert::<UpdatePost>(false);
                                 continue 'app;
                             }
                         }
