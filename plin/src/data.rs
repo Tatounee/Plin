@@ -136,7 +136,7 @@ pub async fn get_guild_data<T: Clone>(
     get_field: impl Fn(&GuildData) -> T,
 ) -> T {
     let data = data.read().await;
-
+    
     let guild_data = data
         .get::<UniqueGuildData>()
         .expect("execpt a UniqueGuildData struct")

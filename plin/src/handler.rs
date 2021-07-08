@@ -1,4 +1,4 @@
-use plin_data::{GuildDataEditableField::UpdatePost, PartialGuildData};
+
 use serenity::{
     async_trait,
     model::{
@@ -13,7 +13,7 @@ use std::sync::Arc;
 use std::{env, time::Duration};
 
 use crate::data::{
-    get_guild_data, is_app_running, remove_guild, write_unique_guild_data, GuildData, Id,
+    get_guild_data, is_app_running, remove_guild, write_unique_guild_data, GuildData, Id, PartialGuildData, fields_name::*
 };
 use crate::post::{edit_post, send_post};
 use crate::river_race::*;
@@ -36,7 +36,7 @@ impl EventHandler for Handler {
         for guild in ready.guilds.iter() {
             let id = Id::from(guild.id());
             if !database.contains_key(&id).unwrap() {
-                println!("New guild ({:?}) added when Plin was off", id);
+                println!("New guild [{:?}] added when Plin was off", id);
 
                 database
                     .insert(id, PartialGuildData::default())
@@ -78,14 +78,11 @@ impl EventHandler for Handler {
 
         tokio::spawn(async move {
             'app: loop {
-                // println!("+ read ({})", guild.name);
                 read_guild_data!(&ctx, &guild.id, guild_data);
                 if guild_data.run {
-                    // println!("LOOP run = true ({})", guild.name);
                     if let Some(channel) = guild_data.post_channel_id {
                         if let Some(tag) = guild_data.clan_tag.clone() {
                             drop(guild_data);
-                            // println!("+ - drop ({})", guild.name);
                             let river_race =
                                 match RiverRace::get_current_river_race(&tag, &cr_token).await {
                                     Ok(crr) => crr,
@@ -100,11 +97,9 @@ impl EventHandler for Handler {
 
                             let clans_fielded = river_race.clans_as_fields(&cr_token).await;
                             let (last_period_index_opt, is_new_message) = {
-                                // println!("+ read ({})", guild.name);
                                 read_guild_data!(&ctx, &guild.id, guild_data);
                                 (guild_data.period_index, guild_data.is_new_message)
                             };
-                            // println!("- drop ({})", guild.name);
 
                             if let Some(last_period_index) = last_period_index_opt {
                                 if last_period_index == river_race.period_index && !is_new_message {
@@ -139,32 +134,25 @@ impl EventHandler for Handler {
                             let repetition = interval / TIME_FRAGMENTATION;
                             let fragment = Duration::from_secs(interval / repetition);
                             for _ in 0..repetition {
-                                // println!("= get ({})", guild.name);
                                 if is_app_running(ctx.data.clone(), &guild.id).await.unwrap() {
                                     sleep(fragment).await;
                                 }
-                                // println!("+ read ... - ({})", guild.name);
                                 read_guild_data!(&ctx, &guild.id, guild_data);
                                 if guild_data.update_interval != interval || guild_data.update_post
                                 {
                                     drop(guild_data);
-                                    // println!("- drop ({})", guild.name);
-                                    // println!("+ write ({})", guild.name);
                                     write_unique_guild_data(
                                         ctx.data.clone(),
                                         &guild.id,
                                         UpdatePost(false),
                                     )
                                     .await;
-                                    // println!("- drop ({})", guild.name);
                                     continue 'app;
                                 }
                             }
                         }
                     }
                 }
-                // println!("- drop ({})", guild.name);
             }
-        });
     }
 }
