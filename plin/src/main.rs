@@ -50,12 +50,14 @@ const TIME_MIN: u64 = 60 * 5;
 #[tokio::main]
 async fn main() {
     dotenv().ok();
-    
+
     let plin_token = if cfg!(debug_assertions) {
         env::var("PLIN_DEV_DISCORD_TOKEN").expect("Expected a Discord dev-token in the environment. Variable name: `PLIN_DEV_DISCORD_TOKEN`")
     } else {
-        env::var("PLIN_DISCORD_TOKEN").expect("Expected a Discord oken in the environment. Variable name: `PLIN_DISCORD_TOKEN`")
+        env::var("PLIN_DISCORD_TOKEN").expect("Expected a Discord token in the environment. Variable name: `PLIN_DISCORD_TOKEN`")
     };
+    let cr_token =
+    env::var("PLIN_CR_TOKEN").expect("Expected a Clash Royale token in the environment");
 
     let http = Http::new_with_token(&plin_token);
 
@@ -165,8 +167,6 @@ async fn main() {
     {
         let mut data = bot.data.write().await;
 
-        let cr_token =
-            env::var("PLIN_CR_TOKEN").expect("Expected a Clash Royale token in the environment");
         // If unwrap fail, we want to panic
         let database = sled::open(DATABASE_PATH).unwrap();
         let dashmap = DashMap::new();
