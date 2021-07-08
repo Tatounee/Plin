@@ -50,8 +50,12 @@ const TIME_MIN: u64 = 60 * 5;
 #[tokio::main]
 async fn main() {
     dotenv().ok();
-    let plin_token =
-        env::var("PLIN_DEV_DISCORD_TOKEN").expect("Expected a Discord token in the environment");
+    
+    let plin_token = if cfg!(debug_assertions) {
+        env::var("PLIN_DEV_DISCORD_TOKEN").expect("Expected a Discord dev-token in the environment. Variable name: `PLIN_DEV_DISCORD_TOKEN`")
+    } else {
+        env::var("PLIN_DISCORD_TOKEN").expect("Expected a Discord oken in the environment. Variable name: `PLIN_DISCORD_TOKEN`")
+    };
 
     let http = Http::new_with_token(&plin_token);
 
