@@ -3,6 +3,7 @@ pub mod fields;
 use std::sync::Arc;
 
 use bincode::{deserialize, serialize};
+use futures::future::AbortHandle;
 use serde::{Deserialize, Serialize};
 use serenity::{http::Http, model::channel::Message, utils::MessageBuilder};
 use sled::IVec;
@@ -19,6 +20,7 @@ pub struct GuildData {
     pub post: Option<Message>,
     pub clan_tag: Option<String>,
     pub period_index: Option<i32>,
+    pub abort: Option<AbortHandle>
 }
 
 impl Default for GuildData {
@@ -32,6 +34,7 @@ impl Default for GuildData {
             post: None,
             clan_tag: None,
             period_index: None,
+            abort: None
         }
     }
 }
@@ -54,7 +57,9 @@ impl GuildData {
             .push("clan_tag = ")
             .push_mono_line(format!("{:?}", self.clan_tag))
             .push("period_index = ")
-            .push_mono(format!("{:?}", self.period_index))
+            .push_mono_line(format!("{:?}", self.period_index))
+            .push("abort = ")
+            .push_mono_line(format!("{:?}", self.abort))
             .build()
     }
 }

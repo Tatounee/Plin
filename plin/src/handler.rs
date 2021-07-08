@@ -8,6 +8,7 @@ use serenity::{
     prelude::*,
 };
 use tokio::time::sleep;
+use futures::future::{Abortable, AbortHandle};
 
 use std::sync::Arc;
 use std::{env, time::Duration};
@@ -48,8 +49,18 @@ impl EventHandler for Handler {
         println!("READY!")
     }
 
-    async fn guild_delete(&self, ctx: Context, incomplete: GuildUnavailable, _full: Option<Guild>) {
+    async fn guild_delete(&self, ctx: Context, incomplete: GuildUnavailable, full: Option<Guild>) {
+        let identifier = if let Some(guild) = full {
+            guild.name
+        } else {
+            format!("{:?}", incomplete.id)
+        };
+        match get_guild_data(ctx.data.clone(), &incomplete.id, |gd| gd.abort.clone()).await {
+            Some(abort) => abort.abort(),
+            None => println!("Error abording tack for the guild: {:?} [{:?}]", identifier, incomplete.id)
+        }
         remove_guild(ctx.data.clone(), &incomplete.id).await;
+        println!("Guild removed: {}", identifier);
     }
 
     async fn guild_create(&self, ctx: Context, guild: Guild, is_new: bool) {
@@ -76,7 +87,11 @@ impl EventHandler for Handler {
         let cr_token =
             env::var("PLIN_CR_TOKEN").expect("Expected a Clash Royale token in the environment");
 
-        tokio::spawn(async move {
+        let (abort_handle, abort_registration) = AbortHandle::new_pair();
+
+        write_unique_guild_data(ctx.data.clone(), &guild.id, Abort(Some(abort_handle))).await;
+
+        let app = Abortable::new(async move {
             'app: loop {
                 read_guild_data!(&ctx, &guild.id, guild_data);
                 if guild_data.run {
@@ -154,5 +169,8 @@ impl EventHandler for Handler {
                     }
                 }
             }
+        }, abort_registration);
+
+        tokio::spawn(app);
     }
 }

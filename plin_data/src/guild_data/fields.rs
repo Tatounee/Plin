@@ -1,3 +1,4 @@
+use futures::future::AbortHandle;
 use serenity::model::channel::Message;
 
 use crate::{GuildData, Id, PartialGuildData, PostId};
@@ -12,6 +13,7 @@ pub enum GuildDataEditableField {
     Post(Box<Option<Message>>),
     ClanTag(Option<String>),
     PeriodIndex(Option<i32>),
+    Abort(Option<AbortHandle>)
 }
 
 pub trait EditField {
@@ -34,6 +36,7 @@ impl EditField for GuildData {
             GuildDataEditableField::Post(value) => self.post = *value,
             GuildDataEditableField::ClanTag(value) => self.clan_tag = value,
             GuildDataEditableField::PeriodIndex(value) => self.period_index = value,
+            GuildDataEditableField::Abort(value) => self.abort = value,
         }
     }
 }
@@ -56,6 +59,6 @@ impl EditField for PartialGuildData {
 
 pub mod fields_name {
     pub use super::GuildDataEditableField::{
-        ClanTag, IsNewMessage, PeriodIndex, Post, PostChannelId, Run, UpdateInterval, UpdatePost,
+        ClanTag, IsNewMessage, PeriodIndex, Post, PostChannelId, Run, UpdateInterval, UpdatePost, Abort
     };
 }
