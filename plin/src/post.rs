@@ -1,16 +1,16 @@
 use chrono::Local;
 use serenity::client::Context;
-use serenity::model::id::ChannelId;
+use serenity::model::id::{ChannelId, GuildId};
 
+use crate::data::{fields_name::*, write_guild_datas, write_unique_guild_data};
 use crate::river_race::RiverRace;
-use crate::{Day, IsNewMessage, PeriodIndex, Post};
+use crate::UniqueGuildData;
 
 pub type Field = (String, String, bool);
 
-// TODO: update the date for each post
 #[macro_export]
 macro_rules! write_post {
-    ($m:expr, $river_race:expr, $clans_fielded:expr, $date:expr) => {
+    ($m:expr, $river_race:expr, $clans_fielded:expr) => {
         $m.embed(|e| {
             e.color((255, 125, 0))
                 .title("Avancement des combats")
@@ -29,7 +29,7 @@ macro_rules! write_post {
                     })
                 })
                 // .image("http://apcpedagogie.com/wp-content/uploads/2017/12/graphique-excel.jpg")
-                .timestamp($date)
+                .timestamp(crate::post::date_formated())
         })
     };
 }
@@ -43,26 +43,40 @@ macro_rules! send {
     };
 }
 
+#[macro_export]
+macro_rules! edit {
+    ($msg:expr) => {
+        if let Err(why) = $msg {
+            println!("Error editing message: {:?}", why);
+        }
+    };
+}
+
 pub async fn send_post(
     channel: ChannelId,
     ctx: &Context,
+    guild_id: &GuildId,
     river_race: &RiverRace,
     clans_fielded: Vec<Field>,
-    date: String,
     period_index: i32,
 ) {
-    let mut data = ctx.data.write().await;
-    data.insert::<IsNewMessage>(false);
+    // println!("+ write ({})", guild_id);
+    write_unique_guild_data(ctx.data.clone(), guild_id, IsNewMessage(false)).await;
+
+    // println!("- drop ({})", guild_id);
     match channel
-        .send_message(&ctx, |m| {
-            write_post!(m, river_race, clans_fielded, date)
-        })
+        .send_message(&ctx, |m| write_post!(m, river_race, clans_fielded))
         .await
     {
         Ok(post) => {
-            data.insert::<Day>(date_formated());
-            data.insert::<Post>(post);
-            data.insert::<PeriodIndex>(period_index)
+            // println!("+ write ({})", guild_id);
+            write_guild_datas(
+                ctx.data.clone(),
+                guild_id,
+                &[Post(Box::new(Some(post))), PeriodIndex(Some(period_index))],
+            )
+            .await;
+            // println!("- drop ({})", guild_id);
         }
         Err(why) => println!("Error sending message: {:?}", why),
     }
@@ -70,27 +84,33 @@ pub async fn send_post(
 
 pub async fn edit_post(
     ctx: &Context,
+    guild_id: &GuildId,
     river_race: &RiverRace,
     clans_fielded: Vec<Field>,
-    date: String,
 ) {
-    let mut data = ctx.data.write().await;
-    let post = data.get_mut::<Post>().unwrap();
-    match post
-        .edit(ctx, |m| {
-            write_post!(m, river_race, clans_fielded, date)
-        })
-        .await
-    {
-        Ok(_) => {
-            data.insert::<Day>(date_formated());
+    // println!("+ write... ({})", guild_id);
+
+    let data = ctx.data.read().await;
+
+    let mut guild_data = data
+        .get::<UniqueGuildData>()
+        .expect("execpt a UniqueGuildData struct")
+        .get_mut(guild_id)
+        .unwrap();
+
+    match guild_data.post {
+        Some(ref mut post) => {
+            edit!(
+                post.edit(ctx, |m| write_post!(m, river_race, clans_fielded.clone()))
+                    .await
+            )
         }
-        Err(why) => println!("Error editing message: {:?}", why),
+        None => println!("Error: Trying to edit an inexistent post"),
     }
 }
 
 #[inline]
 pub fn date_formated() -> String {
-    //! FIXE THIS
-    format!("{:?}", Local::now())[0..19].to_owned()
+    let date_time = Local::now();
+    format!("{:?}", date_time - *date_time.offset())[0..19].to_owned()
 }

@@ -1,5 +1,7 @@
 use serde::Deserialize;
 
+use crate::post::Field;
+
 #[derive(Debug, Deserialize)]
 pub struct Clan {
     pub tag: String,
@@ -39,5 +41,20 @@ impl<'a> ClanInfo<'a> {
             period_points,
             tag,
         }
+    }
+}
+
+impl<'a> ClanInfo<'a> {
+    pub fn to_field(&self) -> Field {
+        let max_deck_usable = self.participants.len() * 4;
+        let pourcentage = (self.decks_used as f32 / max_deck_usable as f32 * 100.) as u8;
+        (
+            self.name.to_owned(),
+            format!(
+                "⚔⠀{}/{}⠀({}%)\n🏅⠀{}",
+                self.decks_used, max_deck_usable, pourcentage, self.period_points
+            ),
+            true,
+        )
     }
 }

@@ -1,10 +1,12 @@
 use std::collections::HashSet;
 
-use serenity::{client::Context, framework::standard::{
-        help_commands,
-        macros::help,
-        Args, CommandGroup, CommandResult, HelpOptions,
-    }, model::{channel::Message, id::UserId}};
+use serenity::{
+    client::Context,
+    framework::standard::{
+        help_commands, macros::help, Args, CommandGroup, CommandResult, HelpOptions,
+    },
+    model::{channel::Message, id::UserId},
+};
 
 #[help]
 #[no_help_available_text("Commande inconnue")]
@@ -15,7 +17,7 @@ use serenity::{client::Context, framework::standard::{
 #[sub_commands_label = "Commandes associées"]
 #[description_label = "Description"]
 #[available_text = "Disponibilité"]
-#[aliases_label= "Alias"]
+#[aliases_label = "Alias"]
 #[checks_label = "Checks"]
 #[guild_only_text = "Sur un serveur seulement"]
 #[dm_only_text = "En DM seulement"]

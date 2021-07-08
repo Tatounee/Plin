@@ -1,11 +1,12 @@
 use std::collections::HashMap;
+use std::error::Error as StdError;
 
-use reqwest::{header::HeaderMap, Client};
 use serde::Deserialize;
 use tokio::sync::mpsc;
 
 use crate::clan::{Clan, ClanInfo};
 use crate::post::Field;
+use crate::utils::new_client_and_header;
 
 #[derive(Debug, Deserialize)]
 #[serde(from = "String")]
@@ -35,18 +36,42 @@ pub struct RiverRace {
 }
 
 impl RiverRace {
-    pub async fn clans_as_fields(&self, client: Client, header: HeaderMap) -> Vec<Field> {
+    pub async fn get_current_river_race(
+        tag: &str,
+        cr_token: &str,
+    ) -> Result<RiverRace, Box<dyn StdError>> {
+        let (client, header) = new_client_and_header(cr_token);
+
+        let resp = client
+            .get(format!(
+                "https://api.clashroyale.com/v1/clans/%23{}/currentriverrace",
+                tag.replace("#", "")
+            ))
+            .headers(header)
+            .send()
+            .await?
+            .text()
+            .await?;
+
+        serde_json::from_str::<RiverRace>(&resp).map_err(|e| {
+            println!("Get Current River Race: {}", resp);
+            e.into()
+        })
+    }
+
+    pub async fn clans_as_fields(&self, cr_token: &str) -> Vec<Field> {
+        let (client, header) = new_client_and_header(cr_token);
+
         let mut clans: Vec<ClanInfo> = self.get_clan_info();
 
         let (tx, mut rx) = mpsc::channel(5);
 
-        let mut clan_handler = vec![];
         for clan in clans.iter() {
             let sender = tx.clone();
             let client = client.clone();
             let header = header.clone();
             let tag = clan.tag.clone();
-            clan_handler.push(tokio::task::spawn(async move {
+            tokio::task::spawn(async move {
                 sender
                     .send((
                         tag.clone(),
@@ -60,27 +85,27 @@ impl RiverRace {
                             .await,
                     ))
                     .await
-            }))
+            });
         }
 
         drop(tx);
 
+        // clan tag / members tag
         let mut players = HashMap::new();
         while let Some(resp) = rx.recv().await {
             let tags = match resp.1 {
                 Ok(tags) => match tags.json::<Items<Member>>().await {
-                    Ok(tags) => tags
-                        .into_vec()
+                    Ok(tags) => Vec::from(tags)
                         .into_iter()
                         .map(|member| member.tag)
                         .collect::<Vec<String>>(),
                     Err(e) => {
-                        println!("Json : {}", e);
+                        println!("Clans as Fields: {}", e);
                         continue;
                     }
                 },
                 Err(e) => {
-                    println!("Response : {}", e);
+                    println!("Response: {}", e);
                     continue;
                 }
             };
@@ -88,6 +113,7 @@ impl RiverRace {
         }
 
         for (key, value) in players {
+            // remove participant how aren't currently in these clans
             clans
                 .iter_mut()
                 .find(|clan| clan.tag == key)
@@ -96,23 +122,11 @@ impl RiverRace {
                 .retain(|tag| value.contains(tag))
         }
 
+        // If we are in training period, all period_points will be at 0, so we sort clans by these members decks used
         clans.sort_unstable_by(|clan1, clan2| clan2.decks_used.cmp(&clan1.decks_used));
         clans.sort_unstable_by(|clan1, clan2| clan2.period_points.cmp(&clan1.period_points));
-        clans
-            .iter()
-            .map(|clan| {
-                let max_deck_usable = clan.participants.len() * 4;
-                let pourcentage = (clan.decks_used as f32 / max_deck_usable as f32 * 100.) as u8;
-                (
-                    clan.name.to_owned(),
-                    format!(
-                        "⚔⠀{}/{}⠀({}%)\n🏅⠀{}",
-                        clan.decks_used, max_deck_usable, pourcentage, clan.period_points
-                    ),
-                    true,
-                )
-            })
-            .collect()
+
+        clans.iter().map(|clan| clan.to_field()).collect()
     }
 
     fn get_clan_info(&self) -> Vec<ClanInfo> {
@@ -149,9 +163,8 @@ pub struct Items<T> {
     items: Vec<T>,
 }
 
-impl<T> Items<T> {
-    #[inline]
-    fn into_vec(self) -> Vec<T> {
-        self.items
+impl<T> From<Items<T>> for Vec<T> {
+    fn from(items: Items<T>) -> Self {
+        items.items
     }
 }
