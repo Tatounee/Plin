@@ -60,23 +60,19 @@ pub async fn send_post(
     clans_fielded: Vec<Field>,
     period_index: i32,
 ) {
-    // println!("+ write ({})", guild_id);
     write_unique_guild_data(ctx.data.clone(), guild_id, IsNewMessage(false)).await;
 
-    // println!("- drop ({})", guild_id);
     match channel
         .send_message(&ctx, |m| write_post!(m, river_race, clans_fielded))
         .await
     {
         Ok(post) => {
-            // println!("+ write ({})", guild_id);
             write_guild_datas(
                 ctx.data.clone(),
                 guild_id,
                 &[Post(Box::new(Some(post))), PeriodIndex(Some(period_index))],
             )
             .await;
-            // println!("- drop ({})", guild_id);
         }
         Err(why) => println!("Error sending message: {:?}", why),
     }
@@ -88,8 +84,6 @@ pub async fn edit_post(
     river_race: &RiverRace,
     clans_fielded: Vec<Field>,
 ) {
-    // println!("+ write... ({})", guild_id);
-
     let data = ctx.data.read().await;
 
     let mut guild_data = data
