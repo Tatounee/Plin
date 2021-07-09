@@ -8,7 +8,10 @@ use serenity::{
     utils::MessageBuilder,
 };
 
-use crate::data::{fields_name::*, write_guild_data};
+use crate::{
+    data::{fields_name::*, get_guild_data, write_guild_data},
+    utils::PrintPass,
+};
 use crate::{send, TIME_MIN};
 
 #[command("interval")]
@@ -32,6 +35,10 @@ pub async fn set_interval(ctx: &Context, guild_id: &GuildId, arg: &str) -> Comma
 
             if interval >= TIME_MIN {
                 write_guild_data(ctx.data.clone(), guild_id, UpdateInterval(interval)).await;
+                let rx = get_guild_data(ctx.data.clone(), guild_id, |gd| gd.sleep_cancel.clone())
+                    .await
+                    .unwrap();
+                rx.send(()).await.println_and_pass();
                 format!(
                     "Interval de temps des mises à jours des posts changé pour {}.",
                     duration

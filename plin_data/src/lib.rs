@@ -4,7 +4,7 @@ mod post;
 
 pub use guild_data::{
     fields::{fields_name, EditField, GuildDataEditableField},
-    GuildData, PartialGuildData,
+    GuildData, PartialGuildData, DEFAULT_UPDATE_INTERVAL,
 };
 pub use id::Id;
 pub use post::PostId;

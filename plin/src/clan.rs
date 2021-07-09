@@ -24,9 +24,6 @@ pub struct ClanInfo {
     pub participants: Vec<String>,
     pub period_points: i32,
     pub tag: String,
-    pub max_deck_usable: usize,
-    pub pourcentage: u8,
-    pub maximum_points: i32,
 }
 
 impl ClanInfo {
@@ -37,10 +34,6 @@ impl ClanInfo {
         period_points: i32,
         tag: String,
     ) -> Self {
-        let max_deck_usable = participants.len() * 4;
-        let pourcentage = (decks_used as f32 / max_deck_usable as f32 * 100.) as u8;
-        // the maximum of points you can gain from your four battle is 900, but to be more realistic, we consider that in average it's 800
-        let maximum_points = period_points + (max_deck_usable as i32 - decks_used) * 800;
 
         Self {
             name,
@@ -48,10 +41,23 @@ impl ClanInfo {
             participants,
             period_points,
             tag,
-            max_deck_usable,
-            pourcentage,
-            maximum_points
         }
+    }
+
+    #[inline]
+    pub fn max_deck_usable(&self) -> usize {
+        self.participants.len() * 4
+    }
+
+    #[inline]
+    pub fn pourcentage(&self) -> u8 {
+        (self.decks_used as f32 / self.max_deck_usable() as f32 * 100.) as u8
+    }
+
+    #[inline]
+    pub fn maximum_points(&self) -> i32 {
+        // the maximum of points you can gain from your four battle is 900, but to be more realistic, we consider that in average it's 800
+        self.period_points + (self.max_deck_usable() as i32 - self.decks_used) * 800
     }
 }
 
@@ -61,7 +67,11 @@ impl ClanInfo {
             self.name.to_owned(),
             format!(
                 "⚔⠀{}/{}⠀({}%)\n🏅⠀{}\n⭱⭱⠀{}",
-                self.decks_used, self.max_deck_usable, self.pourcentage, self.period_points, self.maximum_points
+                self.decks_used,
+                self.max_deck_usable(),
+                self.pourcentage(),
+                self.period_points,
+                self.maximum_points()
             ),
             true,
         )

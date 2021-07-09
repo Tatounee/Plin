@@ -5,7 +5,7 @@ use serenity::{
 };
 
 use crate::data::{fields_name::*, write_guild_datas, Id};
-use crate::{send, TIME_FRAGMENTATION};
+use crate::send;
 
 #[command("setup")]
 #[num_args(0)]
@@ -20,7 +20,8 @@ pub async fn setup(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
         &[
             PostChannelId(Some(Id(862419878282657792))),
             ClanTag(Some("YLP9PVC9".to_owned())),
-            UpdateInterval(TIME_FRAGMENTATION),
+            UpdateInterval(10),
+            Post(Box::new(None))
         ],
     )
     .await;

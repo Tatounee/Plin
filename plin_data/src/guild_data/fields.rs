@@ -1,5 +1,8 @@
+use std::sync::Arc;
+
 use futures::future::AbortHandle;
 use serenity::model::channel::Message;
+use tokio::sync::mpsc::Sender;
 
 use crate::{GuildData, Id, PartialGuildData, PostId};
 
@@ -13,7 +16,8 @@ pub enum GuildDataEditableField {
     Post(Box<Option<Message>>),
     ClanTag(Option<String>),
     PeriodIndex(Option<i32>),
-    Abort(Option<AbortHandle>)
+    Abort(Option<AbortHandle>),
+    SleepCancel(Option<Arc<Sender<()>>>),
 }
 
 pub trait EditField {
@@ -37,6 +41,7 @@ impl EditField for GuildData {
             GuildDataEditableField::ClanTag(value) => self.clan_tag = value,
             GuildDataEditableField::PeriodIndex(value) => self.period_index = value,
             GuildDataEditableField::Abort(value) => self.abort = value,
+            GuildDataEditableField::SleepCancel(value) => self.sleep_cancel = value,
         }
     }
 }
@@ -47,9 +52,7 @@ impl EditField for PartialGuildData {
             GuildDataEditableField::UpdateInterval(value) => self.update_interval = value,
             GuildDataEditableField::Run(value) => self.run = value,
             GuildDataEditableField::PostChannelId(value) => self.post_channel_id = value,
-            GuildDataEditableField::Post(value) => {
-                self.post_id = value.map(PostId::from)
-            }
+            GuildDataEditableField::Post(value) => self.post_id = value.map(PostId::from),
             GuildDataEditableField::ClanTag(value) => self.clan_tag = value,
             GuildDataEditableField::PeriodIndex(value) => self.period_index = value,
             _ => (),
@@ -59,6 +62,7 @@ impl EditField for PartialGuildData {
 
 pub mod fields_name {
     pub use super::GuildDataEditableField::{
-        ClanTag, IsNewMessage, PeriodIndex, Post, PostChannelId, Run, UpdateInterval, UpdatePost, Abort
+        Abort, ClanTag, IsNewMessage, PeriodIndex, Post, PostChannelId, Run, SleepCancel,
+        UpdateInterval, UpdatePost,
     };
 }

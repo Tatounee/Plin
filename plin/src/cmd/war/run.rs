@@ -4,8 +4,11 @@ use serenity::{
     model::channel::Message,
 };
 
-use crate::data::{fields_name::Run, write_guild_data};
 use crate::send;
+use crate::{
+    data::{fields_name::Run, get_guild_data, write_guild_data},
+    utils::PrintPass,
+};
 
 #[command("start")]
 #[num_args(0)]
@@ -23,6 +26,12 @@ async fn start(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 #[required_permissions("ADMINISTRATOR")]
 async fn stop(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     write_guild_data(ctx.data.clone(), &msg.guild_id.unwrap(), Run(false)).await;
+    let rx = get_guild_data(ctx.data.clone(), &msg.guild_id.unwrap(), |gd| {
+        gd.sleep_cancel.clone()
+    })
+    .await
+    .unwrap();
+    rx.send(()).await.println_and_pass();
     send!(msg.reply(ctx, "Traqueur de guerre arrêté.").await);
     Ok(())
 }

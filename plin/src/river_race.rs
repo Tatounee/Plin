@@ -123,12 +123,21 @@ impl RiverRace {
         }
 
         // Crown the clan witch can have the best score
-        clans.iter_mut().max_by_key(|clan| clan.maximum_points).unwrap().name.push_str("⠀👑");
+        clans
+            .iter_mut()
+            .max_by_key(|clan| clan.maximum_points())
+            .unwrap()
+            .name
+            .push_str("⠀👑");
 
         // If we are in training period, we sort them by the total of decks used
         match self.period_type {
-            Period::Training => clans.sort_unstable_by(|clan1, clan2| clan2.decks_used.cmp(&clan1.decks_used)),
-            Period::War => clans.sort_unstable_by(|clan1, clan2| clan2.period_points.cmp(&clan1.period_points)),
+            Period::Training => {
+                clans.sort_unstable_by(|clan1, clan2| clan2.decks_used.cmp(&clan1.decks_used))
+            }
+            Period::War => {
+                clans.sort_unstable_by(|clan1, clan2| clan2.period_points.cmp(&clan1.period_points))
+            }
         }
 
         clans.iter().map(|clan| clan.to_field()).collect()

@@ -7,8 +7,11 @@ use futures::future::AbortHandle;
 use serde::{Deserialize, Serialize};
 use serenity::{http::Http, model::channel::Message, utils::MessageBuilder};
 use sled::IVec;
+use tokio::sync::mpsc::Sender;
 
 use crate::{id::Id, post::PostId};
+
+pub const DEFAULT_UPDATE_INTERVAL: u64 = 60 * 10;
 
 #[derive(Debug)]
 pub struct GuildData {
@@ -20,13 +23,14 @@ pub struct GuildData {
     pub post: Option<Message>,
     pub clan_tag: Option<String>,
     pub period_index: Option<i32>,
-    pub abort: Option<AbortHandle>
+    pub abort: Option<AbortHandle>,
+    pub sleep_cancel: Option<Arc<Sender<()>>>,
 }
 
 impl Default for GuildData {
     fn default() -> Self {
         Self {
-            update_interval: 60 * 10,
+            update_interval: DEFAULT_UPDATE_INTERVAL,
             is_new_message: false,
             update_post: false,
             run: false,
@@ -34,7 +38,8 @@ impl Default for GuildData {
             post: None,
             clan_tag: None,
             period_index: None,
-            abort: None
+            abort: None,
+            sleep_cancel: None,
         }
     }
 }
@@ -59,7 +64,9 @@ impl GuildData {
             .push("period_index = ")
             .push_mono_line(format!("{:?}", self.period_index))
             .push("abort = ")
-            .push_mono_line(format!("{:?}", self.abort))
+            .push_mono_line("...")
+            .push("sleep_cancel = ")
+            .push_mono("...")
             .build()
     }
 }
