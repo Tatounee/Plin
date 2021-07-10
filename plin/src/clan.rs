@@ -56,8 +56,8 @@ impl ClanInfo {
 
     #[inline]
     pub fn maximum_points(&self) -> i32 {
-        // the maximum of points you can gain from your four battle is 900, but to be more realistic, we consider that in average it's 800
-        self.period_points + (self.max_deck_usable() as i32 - self.decks_used) * 800
+        // the maximum of points you can gain from your four battle is 900, but to be more realistic, we consider that in average it's 700
+        self.period_points + (self.max_deck_usable() as i32 - self.decks_used) * 700
     }
 }
 
