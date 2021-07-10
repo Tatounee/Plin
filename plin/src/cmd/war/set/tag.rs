@@ -51,7 +51,9 @@ pub async fn set_tag(ctx: &Context, guild_id: &GuildId, tag: &str) -> CommandRes
             MessageBuilder::new()
                 .push("Le tag ")
                 .push_mono(tag)
-                .push(" ne correspond à aucun clan.")
+                .push_line(" ne correspond à aucun clan.")
+                .push("Rappel: Un tag est composé de minimum trois de ces charactères suivant: ")
+                .push_mono("0289PYLQGRJCUV").push(".")
                 .build()
         },
     )
